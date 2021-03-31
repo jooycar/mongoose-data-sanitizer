@@ -43,14 +43,16 @@ describe('mongoose-data-sanitizer', function() {
             firstName: '=HYPERLINK("http://some-evil-server.xyz")',
             middleName: '=1+1',
             lastName: 'Smith',
-            email: 's@mith.COM'
+            email: 's@mith.COM',
+            favouriteFruits: [ 'Mango', 'Blackberry', '@PPLE' ]
           })
 
-          expect(user).to.include({
+          expect(user).to.deep.include({
             firstName: '\'=HYPERLINK("http://some-evil-server.xyz")', // Matching should be sanitized
             middleName: '=1+1', // SchemaType has skipAll: true
             lastName: 'SMITH', // Non-matching should be unmodified
-            email: 's@mith.com'
+            email: 's@mith.com',
+            favouriteFruits: [ 'Mango', 'Blackberry', '\'@PPLE' ]
           })
         })
       })

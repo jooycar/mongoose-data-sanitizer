@@ -18,5 +18,6 @@ module.exports = {
     lowercase: true
   },
   hasChildren: Boolean,
-  lastSeen: Date
+  lastSeen: Date,
+  favouriteFruits: [ String ]
 }

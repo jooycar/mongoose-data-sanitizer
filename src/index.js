@@ -22,14 +22,18 @@ function sanitizerPlugin(schema, options = {}) {
 
   const pathsToHandle = Object.entries(schema.paths)
     .reduce((m, e) => {
-      const dataSanitizerOpts = pluginOptsFromOptions(e[1])
-      if (e[1].instance === 'String' && !dataSanitizerOpts.skipAll)
-        m.push(e[0])
+      const schemaType = e[1]
+      const dataSanitizerOpts = pluginOptsFromOptions(schemaType)
+      if (!dataSanitizerOpts.skipAll) {
+        if (schemaType.instance === 'String')
+          m.push(schemaType)
+        else if(schemaType.instance === 'Array' && schemaType.caster.instance === 'String')
+          m.push(schemaType.caster)
+      }
       return m
     }, [])
 
-  pathsToHandle.forEach(pathKey => {
-    const schemaType = schema.path(pathKey)
+  pathsToHandle.forEach(schemaType => {
     const dataSanitizerOpts = pluginOptsFromOptions(schemaType)
 
     if (!dataSanitizerOpts.skipSanitizers) {
