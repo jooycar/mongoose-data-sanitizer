@@ -19,5 +19,9 @@ module.exports = {
   },
   hasChildren: Boolean,
   lastSeen: Date,
-  favouriteFruits: [ String ]
+  favouriteFruits: [ String ],
+  phoneNumbers: {
+    home: String,
+    mobile: { type: String, dataSanitizer: { skipAll: true } }
+  }
 }

@@ -9,6 +9,23 @@ function buildArr(builtInAttr, builtIn, custom) {
     .concat(custom)
 }
 
+function buildValidator(schemaType, validatorArgs) {
+  const [ fn, errorMsg ] = validatorArgs
+
+  if (isStringSchemaArray(schemaType))
+    return [ function (value) { return value.every(fn) }, errorMsg ]
+
+  return validatorArgs
+}
+
+function isStringSchemaArray(schemaType) {
+  return schemaType.instance === 'Array' && schemaType.caster.instance === 'String'
+}
+
+function isSchemaString(schemaType) {
+  return schemaType.instance === 'String'
+}
+
 function pluginOptsFromOptions(obj) {
   return (obj.options || {}).dataSanitizer || {}
 }
@@ -25,10 +42,8 @@ function sanitizerPlugin(schema, options = {}) {
       const schemaType = e[1]
       const dataSanitizerOpts = pluginOptsFromOptions(schemaType)
       if (!dataSanitizerOpts.skipAll) {
-        if (schemaType.instance === 'String')
+        if (isSchemaString(schemaType) || isStringSchemaArray(schemaType))
           m.push(schemaType)
-        else if(schemaType.instance === 'Array' && schemaType.caster.instance === 'String')
-          m.push(schemaType.caster)
       }
       return m
     }, [])
@@ -40,10 +55,11 @@ function sanitizerPlugin(schema, options = {}) {
       const builtInSanitizers = defaultOpt('builtInSanitizers', [], dataSanitizerOpts)
       const customSanitizers = defaultOpt('customSanitizers', [], dataSanitizerOpts)
       const sanitizers = buildArr('sanitizer', builtInSanitizers, customSanitizers)
+      const sanitizationSchema = isStringSchemaArray(schemaType) ? schemaType.caster : schemaType
 
       sanitizers.forEach(({ getter, setter }) => {
-        if (getter) schemaType.get(getter)
-        if (setter) schemaType.set(setter)
+        if (getter) sanitizationSchema.get(getter)
+        if (setter) sanitizationSchema.set(setter)
       })
     }
 
@@ -53,7 +69,7 @@ function sanitizerPlugin(schema, options = {}) {
       const validators = buildArr('validator', builtInValidators, customValidators)
 
       validators.forEach(validatorArgs => {
-        schemaType.validate(...validatorArgs)
+        schemaType.validate(...buildValidator(schemaType, validatorArgs))
       })
     }
   })

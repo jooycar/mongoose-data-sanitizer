@@ -44,7 +44,11 @@ describe('mongoose-data-sanitizer', function() {
             middleName: '=1+1',
             lastName: 'Smith',
             email: 's@mith.COM',
-            favouriteFruits: [ 'Mango', 'Blackberry', '@PPLE' ]
+            favouriteFruits: [ 'Mango', 'Blackberry', '@PPLE' ],
+            phoneNumbers: {
+              home: '+138258328584',
+              mobile: '+131185645645'
+            }
           })
 
           expect(user).to.deep.include({
@@ -53,6 +57,11 @@ describe('mongoose-data-sanitizer', function() {
             lastName: 'SMITH', // Non-matching should be unmodified
             email: 's@mith.com',
             favouriteFruits: [ 'Mango', 'Blackberry', '\'@PPLE' ]
+          })
+
+          expect(user.phoneNumbers).to.include({
+            home: '\'+138258328584',
+            mobile: '+131185645645'
           })
         })
       })
@@ -66,11 +75,30 @@ describe('mongoose-data-sanitizer', function() {
           User = mongoose.model('UserCSVSafe', userSchema)
         })
 
-        it('should trigger if data matches CSV malicious value', async function() {
+        it('should trigger if data matches CSV malicious value (base)', async function() {
           await expect(User.create({
             firstName: '=HYPERLINK("http://some-evil-server.xyz")',
             lastName: 'Smith'
           })).to.eventually.be.rejectedWith(mongoose.Error.ValidationError, /firstName\: \[CSV\] Invalid character in string/)
+        })
+
+        it('should trigger if data matches CSV malicious value (array)', async function() {
+          await expect(User.create({
+            firstName: 'Agent',
+            lastName: 'Smith',
+            favouriteFruits: [ 'Mango', 'Blackberry', '@PPLE' ]
+          })).to.eventually.be.rejectedWith(mongoose.Error.ValidationError, /favouriteFruits\: \[CSV\] Invalid character in string/)
+        })
+
+        it('should trigger if data matches CSV malicious value (nested)', async function() {
+          await expect(User.create({
+            firstName: 'Agent',
+            lastName: 'Smith',
+            phoneNumbers: {
+              home: '+138258328584',
+              mobile: '+131185645645'
+            }
+          })).to.eventually.be.rejectedWith(mongoose.Error.ValidationError, /phoneNumbers\.home\: \[CSV\] Invalid character in string/)
         })
 
         it('should not trigger if attribute has skipAll: true', async function() {
@@ -101,14 +129,26 @@ describe('mongoose-data-sanitizer', function() {
         it('should not trigger when validator is not enabled', async function() {
           await expect(User.create({
             firstName: '=HYPERLINK("http://some-evil-server.xyz")',
-            lastName: 'Smith'
+            middleName: '+ROUND()',
+            lastName: 'Smith',
+            favouriteFruits: [ 'Mango', 'Blackberry', '@PPLE' ],
+            phoneNumbers: {
+              home: '+138258328584',
+              mobile: '+131185645645'
+            }
           })).to.eventually.be.fulfilled
         })
 
         it('should not trigger if data is clean', async function() {
           await expect(User.create({
             firstName: 'Agent',
-            lastName: 'Smith'
+            middleName: 'A.',
+            lastName: 'Smith',
+            favouriteFruits: [ 'Mango', 'Blackberry', 'Avocado' ],
+            phoneNumbers: {
+              home: '138258328584',
+              mobile: '131185645645'
+            }
           })).to.eventually.be.fulfilled
         })
       })
