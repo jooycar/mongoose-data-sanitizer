@@ -48,7 +48,11 @@ describe('mongoose-data-sanitizer', function() {
             phoneNumbers: {
               home: '+138258328584',
               mobile: '+131185645645'
-            }
+            },
+            addresses: [
+              { street: 'Main St.', city: 'Atlantis', zipCode: '+MIN(2;3)', coordinates: '+41,-73' },
+              { street: 'Boring Av.', city: 'Downtown City', zipCode: '2234', coordinates: '+43,-70' }
+            ]
           })
 
           expect(user).to.deep.include({
@@ -63,6 +67,14 @@ describe('mongoose-data-sanitizer', function() {
             home: '\'+138258328584',
             mobile: '+131185645645'
           })
+
+          const { addresses } = user.toJSON()
+          expect(addresses).to.have.length(2)
+          const expectedAddresses = [
+            { street: 'Main St.', city: 'Atlantis', zipCode: '\'+MIN(2;3)', coordinates: '+41,-73' },
+            { street: 'Boring Av.', city: 'Downtown City', zipCode: '2234', coordinates: '+43,-70' }
+          ]
+          addresses.forEach((a, idx) => expect(a).to.deep.include(expectedAddresses[idx]))
         })
       })
 
@@ -101,10 +113,25 @@ describe('mongoose-data-sanitizer', function() {
           })).to.eventually.be.rejectedWith(mongoose.Error.ValidationError, /phoneNumbers\.home\: \[CSV\] Invalid character in string/)
         })
 
+        it('should trigger if data matches CSV malicious value (implicit document array)', async function() {
+          await expect(User.create({
+            firstName: 'Agent',
+            lastName: 'Smith',
+            addresses: [
+              { street: 'Main St.', city: 'Atlantis', zipCode: '+MIN(2;3)', coordinates: '+41,-73' },
+              { street: 'Boring Av.', city: 'Downtown City', zipCode: '2234', coordinates: '+43,-70' }
+            ]
+          })).to.eventually.be.rejectedWith(mongoose.Error.ValidationError, /addresses\.0\.zipCode\: \[CSV\] Invalid character in string/)
+        })
+
         it('should not trigger if attribute has skipAll: true', async function() {
           await expect(User.create({
             middleName: '+ROUND()',
-            lastName: 'Smith'
+            lastName: 'Smith',
+            addresses: [
+              { street: 'Main St.', city: 'Atlantis', zipCode: '3423', coordinates: '+41,-73' },
+              { street: 'Boring Av.', city: 'Downtown City', zipCode: '2234', coordinates: '+43,-70' }
+            ]
           })).to.eventually.be.fulfilled
         })
 
@@ -148,7 +175,11 @@ describe('mongoose-data-sanitizer', function() {
             phoneNumbers: {
               home: '138258328584',
               mobile: '131185645645'
-            }
+            },
+            addresses: [
+              { street: 'Main St.', city: 'Atlantis', zipCode: '4534', coordinates: '41,-73' },
+              { street: 'Boring Av.', city: 'Downtown City', zipCode: '2234', coordinates: '43,-70' }
+            ]
           })).to.eventually.be.fulfilled
         })
       })

@@ -23,5 +23,11 @@ module.exports = {
   phoneNumbers: {
     home: String,
     mobile: { type: String, dataSanitizer: { skipAll: true } }
-  }
+  },
+  addresses: [{
+    street: String,
+    city: String,
+    zipCode: String,
+    coordinates: { type: String, dataSanitizer: { skipAll: true } }
+  }]
 }

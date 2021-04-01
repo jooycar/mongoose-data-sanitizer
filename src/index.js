@@ -18,6 +18,12 @@ function buildValidator(schemaType, validatorArgs) {
   return validatorArgs
 }
 
+function isImplicitDocumentArraySchema(schemaType) {
+  return schemaType.instance === 'Array'
+    && schemaType['$isMongooseDocumentArray'] === true
+    && schemaType.schema['$implicitlyCreated'] === true
+}
+
 function isStringSchemaArray(schemaType) {
   return schemaType.instance === 'Array' && schemaType.caster.instance === 'String'
 }
@@ -42,13 +48,16 @@ function sanitizerPlugin(schema, options = {}) {
       const schemaType = e[1]
       const dataSanitizerOpts = pluginOptsFromOptions(schemaType)
       if (!dataSanitizerOpts.skipAll) {
-        if (isSchemaString(schemaType) || isStringSchemaArray(schemaType))
+        if (isSchemaString(schemaType) || isStringSchemaArray(schemaType) || isImplicitDocumentArraySchema(schemaType))
           m.push(schemaType)
       }
       return m
     }, [])
 
   pathsToHandle.forEach(schemaType => {
+    if (isImplicitDocumentArraySchema(schemaType))
+      return sanitizerPlugin(schemaType.schema, options)
+
     const dataSanitizerOpts = pluginOptsFromOptions(schemaType)
 
     if (!dataSanitizerOpts.skipSanitizers) {
